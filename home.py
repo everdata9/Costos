@@ -21,7 +21,7 @@ def conectar_bd():
 # Interfaz en Streamlit
 st.title("Conexión a SQL Server desde Streamlit")
 
-if st.button("Conectar a la base de datos"):
+if st.button("Conectar a la base de datoss"):
     conn = conectar_bd()
     if conn:
         st.write("¡Conectado exitosamente!")
