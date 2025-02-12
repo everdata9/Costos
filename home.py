@@ -1,11 +1,7 @@
 import streamlit as st
 import pymssql
 
-# Datos de conexión
-server = "SQL5054.site4now.net"
-database = "DB_A362A0_losCipresesElCedro"
-username = "DB_A362A0_losCipresesElCedro_admin"
-password = "cbd123456"
+
 
 # Función para conectar a SQL Server con pymssql
 def conectar_bd():
