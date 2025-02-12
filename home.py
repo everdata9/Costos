@@ -1,7 +1,11 @@
 import streamlit as st
 import pymssql
 
-
+# Leer credenciales desde los secretos de Streamlit Cloud
+server = st.secrets["DB_SERVER"]
+database = st.secrets["DB_NAME"]
+username = st.secrets["DB_USER"]
+password = st.secrets["DB_PASSWORD"]
 
 # Función para conectar a SQL Server con pymssql
 def conectar_bd():
