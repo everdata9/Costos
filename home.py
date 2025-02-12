@@ -1,17 +1,16 @@
 import streamlit as st
-import pyodbc
+import pymssql
 
-server = "SQL5054.site4now.net"  # Asegúrate de usar el servidor correcto
-database = "DB_A362A0_losCipresesElCedro"  # Base de datos encontrada
-username = "DB_A362A0_losCipresesElCedro_admin"  # Usuario asociado
-password = "cbd123456"  # Verifica que esta contraseña sea correcta
+# Datos de conexión
+server = "SQL5054.site4now.net"
+database = "DB_A362A0_losCipresesElCedro"
+username = "DB_A362A0_losCipresesElCedro_admin"
+password = "cbd123456"
 
-# Función para conectarse a SQL Server
+# Función para conectar a SQL Server con pymssql
 def conectar_bd():
     try:
-        conn = pyodbc.connect(
-            f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
-        )
+        conn = pymssql.connect(server, username, password, database)
         st.success("Conexión exitosa a la base de datos")
         return conn
     except Exception as e:
@@ -21,7 +20,7 @@ def conectar_bd():
 # Interfaz en Streamlit
 st.title("Conexión a SQL Server desde Streamlit")
 
-if st.button("Conectar a la base de datoss"):
+if st.button("Conectar a la base de datos"):
     conn = conectar_bd()
     if conn:
         st.write("¡Conectado exitosamente!")
