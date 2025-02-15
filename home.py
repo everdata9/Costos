@@ -18,7 +18,7 @@ def check_login():
                 st.session_state["logged_in"] = True
                 st.rerun()  # ✅ Esto es la nueva forma de recargar la app en Streamlit
             else:
-                st.error("❌ Usuario o contraseña incorrectos")
+                st.error("❌ Usuario o cGit status -s Contraseña incorrectos")
         st.stop()
 
 # Llamar la función para validar el login
