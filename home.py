@@ -43,40 +43,53 @@ st.set_page_config(page_title="Gestión de Gastos", page_icon="💰", layout="wi
 # Estilos personalizados
 st.markdown("""
     <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f4f4f4;
+        /* Contenedor de la tabla */
+        [data-testid="stTable"] {
+            border-radius: 12px;
+            border: 2px solid #4285F4;
+            overflow: hidden;
         }
-        .sidebar-content {
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+
+        /* Cabecera con azul Google */
+        thead tr {
+            background: linear-gradient(90deg, #4285F4, #34A853);
+            color: white !important;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            font-size: 14px;
         }
-        .stApp {
-            background-color: #f8f9fa;
+
+        /* Filas alternadas */
+        tbody tr:nth-child(even) {
+            background-color: #F1F3F4 !important;
         }
-        .stButton>button {
-            background-color: #ff4b4b;
-            color: white;
-            border-radius: 5px;
-            padding: 10px 20px;
-            font-size: 16px;
-            border: none;
+
+        /* Celdas con espaciado */
+        tbody td {
+            padding: 12px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        /* Hover en amarillo Google */
+        tbody tr:hover {
+            background-color: #FBBC05 !important;
             transition: 0.3s;
         }
-        .stButton>button:hover {
-            background-color: #d43f3f;
-        }
-        .stHeader {
-            background-color: #e8f5e9;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 22px;
+
+        /* Botón moderno en rojo Google */
+        .stButton>button {
+            background-color: #EA4335 !important;
+            color: white !important;
             font-weight: bold;
-            color: #2e7d32;
-            display: flex;
-            align-items: center;
+            border-radius: 8px;
+            padding: 10px 20px;
+            transition: 0.3s;
+            border: none;
+        }
+        .stButton>button:hover {
+            background-color: #C5221F !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -88,51 +101,121 @@ def menu_lateral():
             <h3>📌 Menú</h3>
         </div>
     """, unsafe_allow_html=True)
-    return st.sidebar.radio("Seleccionar", ["💰 Registro de Gastos", "📊 Análisis de Costos"], index=0)
+    #return st.sidebar.radio("Seleccionar", ["💰 Registro de Gastos", "📊 Análisis de Costos"], index=0)
+    return st.sidebar.radio("Seleccionar", ["💰 Registro de Gastos"], index=0)
 
 def registrar_gastos():
-    st.markdown("""<div class="stHeader">💰 Registro de Gastos</div>""", unsafe_allow_html=True)
+    """Función para registrar y editar gastos con un diseño moderno"""
+    st.markdown("<h3 style='color:#4285F4; text-align:center;'> Registro y Edición de Gastos </h3>", unsafe_allow_html=True)
+
     conn = conectar_bd()
     if conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT id_categoria, nombre_categoria FROM Gastos_Categorias")
-        categorias = cursor.fetchall()
-        categoria_dict = {categoria[1]: categoria[0] for categoria in categorias}
-        
-        categoria_seleccionada = st.selectbox("Seleccionar Categoría", list(categoria_dict.keys()))
-        cursor.execute("SELECT id_tipo_gasto, nombre_tipo FROM Gastos_Tipos WHERE id_categoria = %s", (categoria_dict[categoria_seleccionada],))
-        tipos_gastos = cursor.fetchall()
-        tipos_dict = {tipo[1]: tipo[0] for tipo in tipos_gastos}
-        
-        tipo_seleccionado = st.selectbox("Seleccionar Tipo de Gasto", list(tipos_dict.keys()))
-        fecha = st.date_input("Fecha del gasto", key='fecha_gasto').strftime('%Y-%m-%d')
-        monto = st.number_input("Monto", min_value=0.0, format="%.2f")
-        cantidad = st.number_input("Cantidad", min_value=0.0, format="%.2f")
-        
-        if st.button("Registrar Gasto"):
-            cursor.execute("INSERT INTO Gastos_Registro (id_tipo_gasto, fecha, monto, cantidad) VALUES (%s, %s, %s, %s)",
-                           (tipos_dict[tipo_seleccionado], fecha, monto, cantidad))
-            conn.commit()
-            st.success("✅ Gasto registrado exitosamente")
-            st.rerun()
-        
-        cursor.execute("SELECT id_gasto, G.nombre_tipo, FORMAT(R.fecha, 'yyyy-MM-dd') AS fecha, R.monto, R.cantidad FROM Gastos_Registro R JOIN Gastos_Tipos G ON R.id_tipo_gasto = G.id_tipo_gasto")
-        gastos = cursor.fetchall()
-        df = pd.DataFrame(gastos, columns=["ID", "Tipo", "Fecha", "Monto", "Cantidad"])
-        
-        # Permitir edición de los gastos
-        st.subheader("Editar Gastos")
-        df_editado = st.data_editor(df, num_rows="dynamic")
-        
-        if st.button("Guardar Cambios"):
-            for index, row in df_editado.iterrows():
-                cursor.execute("UPDATE Gastos_Registro SET monto=%s, cantidad=%s, fecha=%s WHERE id_gasto=%s",
-                               (row["Monto"], row["Cantidad"], row["Fecha"], row["ID"]))
-            conn.commit()
-            st.success("✅ Cambios guardados exitosamente")
-            st.rerun()
-        
-        conn.close()
+        try:
+            cursor = conn.cursor()
+
+            # Obtener categorías de gastos
+            cursor.execute("SELECT id_categoria, nombre_categoria FROM Gastos_Categorias WITH (NOLOCK)")
+            categorias = cursor.fetchall()
+            categoria_dict = {categoria[1]: categoria[0] for categoria in categorias}
+
+            # Selección de categoría
+            categoria_seleccionada = st.selectbox("Seleccionar Categoría", list(categoria_dict.keys()))
+            id_categoria = categoria_dict[categoria_seleccionada]
+
+            # Obtener tipos de gastos
+            cursor.execute("SELECT id_tipo_gasto, nombre_tipo FROM Gastos_Tipos WITH (NOLOCK) WHERE id_categoria = %s", (id_categoria,))
+            tipos_gastos = cursor.fetchall()
+            tipos_dict = {tipo[1]: tipo[0] for tipo in tipos_gastos}
+
+            # Selección de tipo de gasto
+            tipo_seleccionado = st.selectbox("Seleccionar Tipo de Gasto", list(tipos_dict.keys()))
+            id_tipo_gasto = tipos_dict[tipo_seleccionado]
+
+            # Entrada de datos
+            fecha = st.date_input("Fecha del gasto", key='fecha_gasto').strftime('%Y-%m-%d')
+            monto = st.number_input("Monto", min_value=0.0, format="%.2f")
+            cantidad = st.number_input("Cantidad", min_value=0.0, format="%.2f")
+
+            if st.button("Registrar Gasto"):
+                try:
+                    cursor.execute("""
+                        SELECT COUNT(*) 
+                        FROM Gastos_Registro WITH (NOLOCK)
+                        WHERE id_tipo_gasto = %s AND fecha = %s
+                    """, (id_tipo_gasto, fecha))
+
+                    existe = cursor.fetchone()[0]
+                    if existe > 0:
+                        st.error("❌ No puedes registrar el mismo tipo de gasto en la misma fecha.")
+                    else:
+                        cursor.execute("""
+                            INSERT INTO Gastos_Registro (id_tipo_gasto, fecha, monto, cantidad) 
+                            VALUES (%s, %s, %s, %s)
+                        """, (id_tipo_gasto, fecha, monto, cantidad))
+                        conn.commit()
+                        st.success("✅ Gasto registrado exitosamente")
+                        st.rerun()
+                except Exception as e:
+                    conn.rollback()
+                    st.error(f"❌ Error al registrar gasto: {e}")
+
+            # Obtener registros actuales
+            cursor.execute("""
+                SELECT R.id_gasto, G.nombre_tipo, CONVERT(VARCHAR, R.fecha, 23) AS fecha, R.monto, R.cantidad 
+                FROM Gastos_Registro R WITH (NOLOCK)
+                JOIN Gastos_Tipos G WITH (NOLOCK) ON R.id_tipo_gasto = G.id_tipo_gasto 
+                ORDER BY fecha DESC
+            """)
+            gastos = cursor.fetchall()
+
+            if gastos:
+                df_original = pd.DataFrame(gastos, columns=["ID", "Tipo", "Fecha", "Monto", "Cantidad"])
+                st.subheader("✏️ Editar Gastos")
+                df_editado = st.data_editor(df_original.copy(), num_rows="dynamic")
+
+                if st.button("Guardar Cambios"):
+                    try:
+                        cambios_realizados = False
+
+                        for index, row in df_editado.iterrows():
+                            id_gasto = row["ID"]
+                            nuevo_monto = row["Monto"]
+                            nueva_cantidad = row["Cantidad"]
+                            nueva_fecha = row["Fecha"]
+
+                            fila_original = df_original[df_original["ID"] == id_gasto]
+                            if not fila_original.empty:
+                                original_monto = fila_original.iloc[0]["Monto"]
+                                original_cantidad = fila_original.iloc[0]["Cantidad"]
+                                original_fecha = fila_original.iloc[0]["Fecha"]
+
+                                if (
+                                    nuevo_monto != original_monto or
+                                    nueva_cantidad != original_cantidad or
+                                    nueva_fecha != original_fecha
+                                ):
+                                    cursor.execute("""
+                                        UPDATE Gastos_Registro 
+                                        SET monto=%s, cantidad=%s, fecha=%s 
+                                        WHERE id_gasto=%s
+                                    """, (nuevo_monto, nueva_cantidad, nueva_fecha, id_gasto))
+                                    cambios_realizados = True
+
+                        if cambios_realizados:
+                            conn.commit()
+                            st.success("✅ Cambios guardados exitosamente")
+                            st.rerun()
+                        else:
+                            st.info("ℹ No se detectaron cambios en los datos.")
+
+                    except Exception as e:
+                        conn.rollback()
+                        st.error(f"❌ Error al guardar cambios: {e}")
+            else:
+                st.warning("ℹ No hay registros disponibles.")
+
+        finally:
+            conn.close()
 
 def analisis_costos():
     """Módulo de análisis de costos basado en filtros."""
@@ -246,5 +329,5 @@ def analisis_costos():
 opcion = menu_lateral()
 if opcion == "💰 Registro de Gastos":
     registrar_gastos()
-elif opcion == "📊 Análisis de Costos":
-    analisis_costos()
+#elif opcion == "📊 Análisis de Costos":
+#    analisis_costos()
